@@ -1,12 +1,12 @@
 <?php
 
-namespace Olt;
+namespace olt;
 
 class Channel
 {
     private static $instance;
     private $no = [];
-    private $secret = [];
+    private $sc = [];
 
     private function __construct() { }
 
@@ -21,7 +21,11 @@ class Channel
 
     public function getScrunbleTitle($channel)
     {
-        if (empty($this->sc[$channel])) return [];
+        $scTitles = [];
+        if (empty($this->sc[$channel])) {
+            return $scTitles;
+        }
+
         foreach ($this->sc[$channel] as $no => $scrunble) {
             $scTitles[$no] = $scrunble['title'];
         }
@@ -29,9 +33,11 @@ class Channel
         return $scTitles;
     }
 
-    public function createScrunble($scCode, $title = null, App $app)
+    public function createScrunble($scCode, App $app, $title = null)
     {
-        if (empty($app->channel)) return false;
+        if (empty($app->channel)) {
+            return false;
+        }
 
         $no = 0;
         do {
@@ -48,7 +54,10 @@ class Channel
 
     public function enterScrunble($no, App $app)
     {
-        if (!empty($app->scrunble)) return false;
+        if (!empty($app->scrunble)) {
+            return false;
+        }
+
         $app->scrunble = $no;
 
         foreach ($this->no[$app->channel] as $app) {
@@ -92,7 +101,10 @@ class Channel
 
     public function out(App $app)
     {
-        if (empty($this->no)) return;
+        if (empty($this->no)) {
+            return $this;
+        }
+
         foreach ($this->no[$app->channel] as $key => $val) {
             if ($val == $app) {
                 if (count($this->no[$app->channel]) < 2) {
@@ -110,16 +122,23 @@ class Channel
     public function chat(App $source, $message)
     {
         if (empty(trim($message))) return;
+        /** @var App $app */
         foreach ($this->no[$source->channel] as $app) {
-            if ($app->scrunble !== $source->scrunble) continue;
+            if ($app->scrunble !== $source->scrunble) {
+                continue;
+            }
+
             if (!empty($source->private)) {
                 if ($app->private !== $source->getId() &&
                     $app->getid() !== $source->getid()) {
                     continue;
                 }
-            } else {
-                if (!empty($app->private)) continue;
             }
+
+            if (!empty($app->private)) {
+                continue;
+            }
+
             $app->writeln(sprintf("%s %s", $source, $message));
         }
     }
@@ -141,9 +160,13 @@ class Channel
     {
         if (empty($this->no[$source->channel])) return;
 
+        /** @var App $app */
         foreach ($this->no[$source->channel] as $app)
         {
-            if ($app == $source) continue;
+            if ($app === $source) {
+                continue;
+            }
+
             $app->systemMsg($message, $source);
         }
     }

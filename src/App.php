@@ -1,15 +1,20 @@
-<?php
+<?php declare(strict_types=1);
 
-namespace Olt;
+namespace olt;
+
+use DateTime;
+use InvalidArgumentException;
 use React\Socket\ConnectionInterface;
 
 class App
 {
+    /** @var null|ConnectionInterface */
     private $conn;
     private $id;
     private $status = null;
     private $encode = false;
     private $echo = true;
+
     public  $refuse = false;
     public  $scrunble = null;
     public  $private = null;
@@ -32,14 +37,19 @@ class App
         'onClose'         => 'e',
     ];
 
-    public function connect($id, ConnectionInterface $conn, &$clients)
+    /**
+     * @param integer $id
+     * @param ConnectionInterface $conn
+     * @param []integer $clients
+     */
+    public function connect($id, ConnectionInterface $conn, &$clients): void
     {
         $this->conn = $conn;
         $this->id = $id;
 
         // opening
         $this->welcomeWorld();
-        $this->onEncodeSetting();
+        $this->setStatus('onEncodeSetting');
 
         $this->conn->on('data', function($message) {
             if (!empty($this->encode)) {
@@ -54,16 +64,20 @@ class App
             $message = preg_replace('|[\x00-\x1f\x7f]|u', '', $message);
 
             if (!is_null($status = $this->getStatus())) {
-                return call_user_func($status, $message);
+                call_user_func([$this, $status], $message);
+                return;
             }
 
             if (preg_match("|^/([a-zA-Z]+)\s*([0-9]*)|u", $message, $command)) {
-                return $this->dispatcher($command);
+                $this->dispatcher($command);
+                return;
             }
 
             if (!is_null($this->channel)) {
                 Channel::getInstance()->chat($this, $message);
             }
+
+            return;
         });
 
         $this->conn->on('close', function() use(&$clients) {
@@ -77,12 +91,12 @@ class App
         });
     }
 
-    public function getId()
+    public function getId(): int
     {
         return $this->id;
     }
 
-    public function onMenu($command = null)
+    public function onMenu($command = null): void
     {
         if (!empty($command)) {
             $this->clearStatus();
@@ -108,14 +122,15 @@ class App
         $this->prompt("チャンネル番号またはコマンドを入力してください(1-60,E,UA): ", __METHOD__);
     }
 
-    private function dispatcher($command)
+    private function dispatcher(array $command): void
     {
         list(, $command, $args) = $command;
-        if (!$status = $this->getStatusByCommand(strtolower($command))) {
-            return $this->systemMsg("コマンドはありません");
+        if ($status = $this->getStatusByCommand(strtolower($command))) {
+            call_user_func([$this, $status], $args);
+            return;
         }
 
-        return call_user_func([__NAMESPACE__ . "\\App", $status], $args);
+        $this->systemMsg("コマンドはありません");
     }
 
     private function getStatusByCommand($command)
@@ -142,7 +157,7 @@ class App
 
         $newStatus = $status[0];
         if ($this->checkStatuses($newStatus)) {
-            throw new \InvalidArgumentException;
+            throw new InvalidArgumentException;
         }
 
         $this->status = $status;
@@ -158,7 +173,7 @@ class App
         $this->status = null;
     }
 
-    private function onUserListAll()
+    private function onUserListAll(): bool
     {
         $this->systemMsg("現在のご利用者一覧");
         $this->writeln();
@@ -166,9 +181,11 @@ class App
         $channels = Channel::getInstance()->getUserList();
         $this->outPutUserList($channels);
         $this->writeln();
+
+        return true;
     }
 
-    private function onUserList($channel = null)
+    private function onUserList($channel = null): bool
     {
         $this->systemMsg("現在のご利用者一覧");
         $this->writeln();
@@ -176,7 +193,7 @@ class App
         if (empty($channel)) {
             if (empty($this->channel)) {
                 $this->writeln("エラーです");
-                return;
+                return false;
             }
             $channel = $this->channel;
         }
@@ -184,20 +201,22 @@ class App
         $channels = Channel::getInstance()->getUserList($channel);
         $this->outPutUserList($channels);
         $this->writeln();
+
+        return true;
     }
 
-    private function onDate()
+    private function onDate(): void
     {
-        $date = new \DateTime;
+        $date = new DateTime;
         $this->systemMsg($date->format("Y-m-d H:i:s"));
     }
 
-    private function onEchoOff()
+    private function onEchoOff(): void
     {
         $this->onEchoSetting(false);
     }
 
-    private function onEchoSetting($arg)
+    private function onEchoSetting($arg): void
     {
         $this->echo = $arg;
         $message = "エコーを";
@@ -205,7 +224,8 @@ class App
         $this->writeln($message);
     }
 
-    private function outPutUserList($channels) {
+    private function outPutUserList($channels): void
+    {
 
         if ($channels === false) {
             $this->systemMsg("利用者がいません。");
@@ -248,16 +268,19 @@ class App
                 $this->{$outCmd}($list);
             }
 
-            if (count($channel) % 2) { $this->writeln(); }
+            if (count($channel) % 2) {
+                $this->writeln();
+            }
 
-                $scTitles = Channel::getInstance()->getScrunbleTitle($member->channel);
+            $scTitles = Channel::getInstance()->getScrunbleTitle($no);
+
             if (!empty($scTitles)) {
                 $this->writeln();
-                foreach ($scTitles as $no => $title) {
+                foreach ($scTitles as $scNo => $title) {
                     $this->writeln(
                         sprintf(
                             "SC(%d) %s",
-                            $no,
+                            $scNo,
                             $title
                         )
                     );
@@ -266,7 +289,7 @@ class App
         }
     }
 
-    private function onChat($no = null)
+    private function onChat($no = null): bool
     {
         if (!is_numeric($no) ||
             $this->channel == $no ||
@@ -278,36 +301,34 @@ class App
         $message = "がアクセスしました。";
         Channel::getInstance()->enter($no, $this)
                               ->systemMsg($message, $this);
+
         return true;
     }
 
-    private function onScrunble($args = null)
+    private function onScrunble($args = null): void
     {
         if (__METHOD__ == $this->getStatus()) {
             $scCode = $this->status['scCode'];
             $this->clearStatus();
 
-            if (empty($args)) {
-                $this->writeln("エラーです");
+            if (Channel::getInstance()->createScrunble($scCode, $this, $args)) {
                 return;
             }
 
-            if (!Channel::getInstance()->createScrunble($scCode, $args, $this)) {
-                $this->writeln("エラーです");
-            }
-
+            $this->writeln("エラーです");
             return;
         }
 
         if ($no = Channel::getInstance()->findScrunbleByCode($this->channel, $args)) {
-            return Channel::getInstance()->enterScrunble($no, $this);
+            Channel::getInstance()->enterScrunble($no, $this);
+            return;
         }
 
         $status = [0 => __METHOD__, 'scCode' => $args];
         $this->prompt("タイトルを入力してください : ", $status);
     }
 
-    private function onNickName($message = null)
+    private function onNickName($message = null): void
     {
         if (__METHOD__ == $this->getStatus()) {
             $this->clearStatus();
@@ -327,7 +348,7 @@ class App
         $this->prompt("ニックネームを入力してください : ", __METHOD__);
     }
 
-    private function onRefuseMessage()
+    private function onRefuseMessage(): void
     {
         $this->refuse = !$this->refuse;
 
@@ -338,7 +359,7 @@ class App
         }
     }
 
-    private function onPrivateTalk($args = null)
+    private function onPrivateTalk($args = null): void
     {
         if (__METHOD__  == $this->getStatus()) {
             $from = $this->status['from'];
@@ -348,21 +369,15 @@ class App
                 return;
             }
 
-            foreach (Channel::getInstance()->getUserList() as $no => $members) {
-                foreach ($members as $member) {
-                    if ($from == $member->getId()) {
-                        $from = $member;
-                        break 2;
-                    }
+            $members = Channel::getInstance()->getUserList($this->channel);
+            foreach ($members as $member) {
+                if ($from == $member->getId()) {
+                    $from = $member;
+                    break;
                 }
             }
-            if (!is_object($from)) {
-                $this->writeln("エラーです");
-                return;
-            }
 
-            // 同じチャンネルじゃないとダメ
-            if ($from->channel !== $this->channel) {
+            if (!is_object($from)) {
                 $this->writeln("エラーです");
                 return;
             }
@@ -385,6 +400,7 @@ class App
             return;
         }
 
+        $to = null;
         foreach (Channel::getInstance()->getUserList() as $no => $members) {
             foreach ($members as $member) {
                 if ($args == $member->getId()) {
@@ -414,7 +430,7 @@ class App
         $to->prompt("入室しますか？ (Y/N): ", $status);
     }
 
-    private function onSendMessage($args = null)
+    private function onSendMessage($args = null): void
     {
         if (__METHOD__  == $this->getStatus()) {
             $to = $this->status['to'];
@@ -454,12 +470,12 @@ class App
         $this->prompt(">", $status);
     }
 
-    private function onClose()
+    private function onClose(): void
     {
         $this->conn->close();
     }
 
-    public function write($message)
+    public function write($message): void
     {
         if (!empty($this->encode)) {
             $message = mb_convert_encoding(
@@ -472,18 +488,18 @@ class App
         $this->conn->write($message);
     }
 
-    public function writeln($message = null)
+    public function writeln($message = null): void
     {
         $this->write($message . "\r\n");
     }
 
-    private function prompt($message, $status)
+    private function prompt($message, $status): void
     {
         $this->setStatus($status);
         $this->write($message);
     }
 
-    public function systemMsg($message, App $source = null, $withId = false)
+    public function systemMsg($message, App $source = null, $withId = false): void
     {
         if (!empty($source)) {
             if ($withId) {
@@ -504,18 +520,18 @@ class App
         $this->writeln("-------- " . $message);
     }
 
-    public function statusStdout()
+    public function statusStdout(): void
     {
-        printf("nickName; [%s]" . PHP_EOL, $this->nickName);
+        printf("nickName: [%s]" . PHP_EOL, $this->nickName);
         printf("      id: %d" . PHP_EOL, $this->getId());
         printf(" channel: %d" . PHP_EOL, $this->channel);
-        printf("scurnble: %d" . PHP_EOL, $this->scrunble);
+        printf("scrunble: %d" . PHP_EOL, $this->scrunble);
         printf(" private: %d" . PHP_EOL, $this->private);
         printf("  status: %s" . PHP_EOL, $this->status);
         echo PHP_EOL;
     }
 
-    private function welcomeWorld()
+    private function welcomeWorld(): void
     {
         $this->writeln(<<<EOD
 
@@ -526,7 +542,7 @@ EOD
 
     }
 
-    private function subTitle()
+    private function subTitle(): void
     {
         $this->writeln(<<<EOD
 
@@ -537,7 +553,7 @@ EOD
         );
     }
 
-    private function onEncodeSetting($args = null)
+    private function onEncodeSetting($args = null): void
     {
         if (__METHOD__ == $this->getStatus()) {
             $this->clearStatus();
@@ -570,16 +586,14 @@ EOD
         $this->prompt("", __METHOD__);
     }
 
-    private function multi_strlen($str)
+    private function multi_strlen($str): int
     {
         $byte = strlen($str);
         $count = mb_strlen($str, "UTF8");
-        $twoByte = $byte - ($byte - $count) / 2;
-
-        return $twoByte;
+        return $byte - ($byte - $count) / 2;
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         // 名前の後ろに空白を埋める(sprintf()がマルチバイト非対応の為
         $nickName = $this->nickName .
@@ -592,5 +606,4 @@ EOD
             $nickName
         );
     }
-
 }

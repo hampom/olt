@@ -81,6 +81,10 @@ class App
                 Channel::getInstance()->chat($this, $message);
             }
 
+            if (!is_null($this->private)) {
+                Channel::getInstance()->pt($this, $message);
+            }
+
             return;
         });
 
@@ -254,9 +258,7 @@ class App
                             str_repeat(' ', 12 - $this->multi_strlen($member->nickName));
                 $list = sprintf(
                     "[%2s:%3d:%s]【漢字】",
-                    !empty($member->scrunble)
-                        ? 'S' . $member->scrunble
-                        : $member->channel,
+                    !empty($member->scrunble)? 'S' . $member->scrunble: (!empty($member->private) ? 'PT': $member->channel),
                     $member->getId(),
                     $nickName
                 );

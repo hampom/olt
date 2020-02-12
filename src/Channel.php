@@ -183,6 +183,30 @@ class Channel
         }
     }
 
+    public function pt(App $source, $message)
+    {
+        if (empty($source->private)) {
+            return;
+        }
+
+        foreach (Channel::getInstance()->getUserList() as $members) {
+            foreach ($members as $member) {
+                if ($source->private == $member->getId()) {
+                    $to = $member;
+                    break 2;
+                }
+            }
+        }
+        if (empty($to) || !is_object($to)) {
+            $this->writeln("エラーです");
+            return;
+        }
+
+        $message = sprintf("%s %s", $source, $message);
+        $to->writeln($message);
+        $source->writeln($message);
+    }
+
     public function getUserList($channel = null)
     {
         if (!empty($channel)) {

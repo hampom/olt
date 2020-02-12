@@ -23,4 +23,6 @@ $socket->on('connection', function (React\Socket\ConnectionInterface $connection
     $clients[spl_object_hash($app)] = $id;
 });
 
+$socket->on('error', 'printf');
+
 $loop->run();

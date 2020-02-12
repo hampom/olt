@@ -181,7 +181,7 @@ class App
         $this->status = null;
     }
 
-    private function onUserListAll(): bool
+    private function onUserListAll(): void
     {
         $this->systemMsg("現在のご利用者一覧");
         $this->writeln();
@@ -189,11 +189,9 @@ class App
         $channels = Channel::getInstance()->getUserList();
         $this->outPutUserList($channels);
         $this->writeln();
-
-        return true;
     }
 
-    private function onUserList($channel = null): bool
+    private function onUserList($channel = null): void
     {
         $this->systemMsg("現在のご利用者一覧");
         $this->writeln();
@@ -201,7 +199,7 @@ class App
         if (empty($channel)) {
             if (empty($this->channel)) {
                 $this->writeln("エラーです");
-                return false;
+                return;
             }
             $channel = $this->channel;
         }
@@ -209,8 +207,6 @@ class App
         $channels = Channel::getInstance()->getUserList($channel);
         $this->outPutUserList($channels);
         $this->writeln();
-
-        return true;
     }
 
     private function onDate(): void
@@ -377,11 +373,13 @@ class App
                 return;
             }
 
-            $members = Channel::getInstance()->getUserList($this->channel);
-            foreach ($members as $member) {
-                if ($from == $member->getId()) {
-                    $from = $member;
-                    break;
+            $channels = Channel::getInstance()->getUserList();
+            foreach ($channels as $members) {
+                foreach ($members as $member) {
+                    if ($from == $member->getId()) {
+                        $from = $member;
+                        break 2;
+                    }
                 }
             }
 
@@ -409,7 +407,7 @@ class App
         }
 
         $to = null;
-        foreach (Channel::getInstance()->getUserList() as $no => $members) {
+        foreach (Channel::getInstance()->getUserList() as $members) {
             foreach ($members as $member) {
                 if ($args == $member->getId()) {
                     $to = $member;
@@ -449,7 +447,7 @@ class App
                 return;
             }
 
-            foreach (Channel::getInstance()->getUserList() as $no => $members) {
+            foreach (Channel::getInstance()->getUserList() as $members) {
                 foreach ($members as $member) {
                     if ($to == $member->getId()) {
                         $to = $member;

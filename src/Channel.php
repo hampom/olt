@@ -13,7 +13,7 @@ class Channel
     const NOTICE_ALL = 1;
     const NOTICE_SC = 2;
     const NOTICE_PT = 3;
-    CONST NOTICE_CH = 4;
+    const NOTICE_CH = 4;
 
     private static $instance;
     private $no = [];

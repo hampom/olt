@@ -450,6 +450,7 @@ class App
             }
 
             foreach (Channel::getInstance()->getUserList() as $members) {
+                /** @var App $member */
                 foreach ($members as $member) {
                     if ($to == $member->getId()) {
                         $to = $member;
@@ -468,7 +469,7 @@ class App
             }
 
             $to->systemMsg("からのメッセージです", $this, true);
-            $to->writeln($args);
+            $to->writeln($args, 2);
             $this->systemMsg("送信ＯＫ");
             return;
         }
@@ -496,9 +497,9 @@ class App
         $this->conn->write($message);
     }
 
-    public function writeln($message = null): void
+    public function writeln(string $message = null, int $newlines = 1): void
     {
-        $this->write($message . "\r\n");
+        $this->write($message . str_repeat("\r\n", $newlines));
     }
 
     private function prompt($message, $status): void

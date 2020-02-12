@@ -1,6 +1,9 @@
 <?php
 
 use olt\App;
+use Psr\Http\Message\ServerRequestInterface;
+use React\Http\Response;
+use React\Http\Server;
 
 require "vendor/autoload.php";
 
@@ -25,8 +28,36 @@ $socket->on('connection', function (React\Socket\ConnectionInterface $connection
         $connection->getRemoteAddress()
     );
     $app->connect($id, $connection);
+    $clients[$id] = &$app;
 });
 
 $socket->on('error', 'printf');
+
+$server = new Server(function (ServerRequestInterface $request) use(&$clients) {
+    $response = [];
+    $path = $request->getUri()->getPath();
+
+    if ($path == '/api/users') {
+        foreach ($clients as $id => $app) {
+            $response[] = [
+                'id' => $id,
+                'name' => $app->nickName,
+                'channel' => $app->channel
+            ];
+        }
+        return new Response(
+            200,
+            array(
+                'Content-Type' => 'application/json'
+            ),
+            json_encode($response)
+        );
+    }
+
+    return new Response(400);
+});
+
+$httpSocket = new React\Socket\Server(8080, $loop);
+$server->listen($httpSocket);
 
 $loop->run();

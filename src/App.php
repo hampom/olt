@@ -60,8 +60,13 @@ class App
                 );
             }
 
-            $message = preg_replace(["|\r\n|u", "|\r|u", "|\n|u"], '', $message);
-            $message = preg_replace('|[\x00-\x1f\x7f]|u', '', $message);
+            $message = str_replace(["\x0d\x0a", "\x0a", "\x0d"], "", $message);
+            if (is_null($message)) {
+                return;
+            }
+            if (empty($message)) {
+                return;
+            }
 
             if (!is_null($status = $this->getStatus())) {
                 call_user_func([$this, $status], $message);

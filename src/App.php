@@ -40,9 +40,8 @@ class App
     /**
      * @param integer $id
      * @param ConnectionInterface $conn
-     * @param []integer $clients
      */
-    public function connect($id, ConnectionInterface $conn, &$clients): void
+    public function connect($id, ConnectionInterface $conn): void
     {
         $this->conn = $conn;
         $this->id = $id;
@@ -85,14 +84,18 @@ class App
             return;
         });
 
-        $this->conn->on('close', function() use(&$clients) {
+        $this->conn->on('close', function() {
             if (!empty($this->channel)) {
                 $message = "が終了しました。";
                 Channel::getInstance()->out($this)
                                       ->systemMsg($message, $this);
             }
 
-            unset($clients[spl_object_hash($this)]);
+            printf(
+                "[%s] OUT: %s\n",
+                (new \DateTimeImmutable())->format('c'),
+                spl_object_hash($this),
+            );
         });
     }
 

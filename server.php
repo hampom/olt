@@ -29,6 +29,11 @@ $socket->on('connection', function (React\Socket\ConnectionInterface $connection
     );
     $app->connect($id, $connection);
     $clients[$id] = &$app;
+
+    // opening
+    $app->welcomeWorld();
+    $app->onEncodeSetting();
+
 });
 
 $socket->on('error', 'printf');

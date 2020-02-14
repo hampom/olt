@@ -46,11 +46,12 @@ class App
         $this->conn = $conn;
         $this->id = $id;
 
-        // opening
-        $this->welcomeWorld();
-        $this->setStatus('onEncodeSetting');
-
         $this->conn->on('data', function($message) {
+            // 0xFFで始まるものはスルーする
+            if (strpos($message, 0xFF) === 0) {
+                return;
+            }
+
             if (!empty($this->encode)) {
                 $message = mb_convert_encoding(
                     $message,
@@ -540,7 +541,7 @@ class App
         echo PHP_EOL;
     }
 
-    private function welcomeWorld(): void
+    public function welcomeWorld(): void
     {
         $this->writeln(<<<EOD
 
@@ -562,7 +563,7 @@ EOD
         );
     }
 
-    private function onEncodeSetting($args = null): void
+    public function onEncodeSetting($args = null): void
     {
         if (__METHOD__ == $this->getStatus()) {
             $this->clearStatus();

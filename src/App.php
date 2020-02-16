@@ -4,16 +4,18 @@ namespace olt;
 
 use DateTime;
 use InvalidArgumentException;
+use Ratchet\RFC6455\Messaging\Message;
 use React\Socket\ConnectionInterface;
+use Voryx\WebSocketMiddleware\WebSocketConnection;
 
 class App
 {
-    /** @var null|ConnectionInterface */
-    private $conn;
-    private $id;
-    private $status = null;
-    private $encode = false;
-    private $echo = true;
+    /** @var WebSocketConnection|ConnectionInterface */
+    protected $conn;
+    protected $id;
+    protected $status = null;
+    protected $encode = null;
+    protected $echo = true;
 
     public  $refuse = false;
     public  $scrunble = null;
@@ -21,7 +23,7 @@ class App
     public  $nickName;
     public  $channel;
 
-    private $statuses = [
+    protected $statuses = [
         'onMenu'          => null,
         'onEncodeSetting' => null,
         'onNickName'      => null,
@@ -38,15 +40,25 @@ class App
     ];
 
     /**
-     * @param integer $id
-     * @param ConnectionInterface $conn
+     * @param $id
+     * @param WebSocketConnection|ConnectionInterface $conn
      */
-    public function connect($id, ConnectionInterface $conn): void
+    public function connect($id, $conn): void
     {
         $this->conn = $conn;
         $this->id = $id;
 
-        $this->conn->on('data', function($message) {
+        $type = 'data';
+        if ($conn instanceof WebSocketConnection) {
+            $type = 'message';
+        }
+
+        $this->conn->on($type, function($message) use($type) {
+
+            if ($type === 'message') {
+                $message = $message->getPayload();
+            }
+
             // 0xFFで始まるものはスルーする
             if (strpos($message, 0xFF) === 0) {
                 return;
@@ -66,6 +78,10 @@ class App
             }
             if (empty($message)) {
                 return;
+            }
+
+            if ($this->echo) {
+                $this->writeln($message);
             }
 
             if (!is_null($status = $this->getStatus())) {
@@ -135,7 +151,7 @@ class App
         $this->prompt("チャンネル番号またはコマンドを入力してください(1-60,E,UA): ", __METHOD__);
     }
 
-    private function dispatcher(array $command): void
+    protected function dispatcher(array $command): void
     {
         list(, $command, $args) = $command;
         if ($status = $this->getStatusByCommand(strtolower($command))) {
@@ -146,12 +162,12 @@ class App
         $this->systemMsg("コマンドはありません");
     }
 
-    private function getStatusByCommand($command)
+    protected function getStatusByCommand($command)
     {
         return array_search($command, $this->statuses, true);
     }
 
-    private function checkStatuses($status)
+    protected function checkStatuses($status)
     {
         $tmp = explode(":", $status);
         $status = end($tmp);
@@ -162,7 +178,7 @@ class App
         );
     }
 
-    private function setStatus($status)
+    public function setStatus($status)
     {
         if (!is_array($status)) {
             $status = [0 => $status];
@@ -176,17 +192,17 @@ class App
         $this->status = $status;
     }
 
-    private function getStatus()
+    protected function getStatus()
     {
         return $this->status[0];
     }
 
-    private function clearStatus()
+    protected function clearStatus()
     {
         $this->status = null;
     }
 
-    private function onUserListAll(): void
+    protected function onUserListAll(): void
     {
         $this->systemMsg("現在のご利用者一覧");
         $this->writeln();
@@ -196,7 +212,7 @@ class App
         $this->writeln();
     }
 
-    private function onUserList($channel = null): void
+    protected function onUserList($channel = null): void
     {
         $this->systemMsg("現在のご利用者一覧");
         $this->writeln();
@@ -214,18 +230,18 @@ class App
         $this->writeln();
     }
 
-    private function onDate(): void
+    protected function onDate(): void
     {
         $date = new DateTime;
         $this->systemMsg($date->format("Y-m-d H:i:s"));
     }
 
-    private function onEchoOff(): void
+    protected function onEchoOff(): void
     {
         $this->onEchoSetting(false);
     }
 
-    private function onEchoSetting($arg): void
+    protected function onEchoSetting($arg): void
     {
         $this->echo = $arg;
         $message = "エコーを";
@@ -233,7 +249,7 @@ class App
         $this->writeln($message);
     }
 
-    private function outPutUserList($channels): void
+    protected function outPutUserList($channels): void
     {
 
         if ($channels === false) {
@@ -296,7 +312,7 @@ class App
         }
     }
 
-    private function onChat($no = null): bool
+    protected function onChat($no = null): bool
     {
         if (!is_numeric($no) ||
             $this->channel == $no ||
@@ -312,7 +328,7 @@ class App
         return true;
     }
 
-    private function onScrunble($args = null): void
+    protected function onScrunble($args = null): void
     {
         if (__METHOD__ == $this->getStatus()) {
             $scCode = $this->status['scCode'];
@@ -335,7 +351,7 @@ class App
         $this->prompt("タイトルを入力してください : ", $status);
     }
 
-    private function onNickName($message = null): void
+    public function onNickName($message = null): void
     {
         if (__METHOD__ == $this->getStatus()) {
             $this->clearStatus();
@@ -355,7 +371,7 @@ class App
         $this->prompt("ニックネームを入力してください : ", __METHOD__);
     }
 
-    private function onRefuseMessage(): void
+    protected function onRefuseMessage(): void
     {
         $this->refuse = !$this->refuse;
 
@@ -366,7 +382,7 @@ class App
         }
     }
 
-    private function onPrivateTalk($args = null): void
+    protected function onPrivateTalk($args = null): void
     {
         if (__METHOD__  == $this->getStatus()) {
             $from = $this->status['from'];
@@ -439,7 +455,7 @@ class App
         $to->prompt("入室しますか？ (Y/N): ", $status);
     }
 
-    private function onSendMessage($args = null): void
+    protected function onSendMessage($args = null): void
     {
         if (__METHOD__  == $this->getStatus()) {
             $to = $this->status['to'];
@@ -480,22 +496,14 @@ class App
         $this->prompt(">", $status);
     }
 
-    private function onClose(): void
+    protected function onClose(): void
     {
         $this->conn->close();
     }
 
     public function write($message): void
     {
-        if (!empty($this->encode)) {
-            $message = mb_convert_encoding(
-                $message,
-                $this->encode,
-                "UTF-8"
-            );
-        }
-
-        $this->conn->write($message);
+        throw new \LogicException();
     }
 
     public function writeln(string $message = null, int $newlines = 1): void
@@ -503,7 +511,7 @@ class App
         $this->write($message . str_repeat("\r\n", $newlines));
     }
 
-    private function prompt($message, $status): void
+    protected function prompt($message, $status): void
     {
         $this->setStatus($status);
         $this->write($message);
@@ -552,7 +560,7 @@ EOD
 
     }
 
-    private function subTitle(): void
+    public function subTitle(): void
     {
         $this->writeln(<<<EOD
 
@@ -596,7 +604,7 @@ EOD
         $this->prompt("", __METHOD__);
     }
 
-    private function multi_strlen($str): int
+    protected function multi_strlen($str): int
     {
         $byte = strlen($str);
         $count = mb_strlen($str, "UTF8");

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OLT</title>
+    <link rel="stylesheet" href="https://cdn.rawgit.com/filipelinhares/ress/master/dist/ress.min.css" type="text/css" />
+    <style type="text/css">
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            background-color: Window;
+            color:#fffffc;
+            padding: 3px;
+        }
+        div#container {
+            background: #000b00;
+            white-space: pre;
+            font-family: monospace;
+            padding: 10px;
+            height: calc(100% - 34px);
+            width: 100%;
+            overflow: auto;
+            border-style: solid;
+            border-width: 2px;
+            border-color: ThreeDShadow ThreeDLightShadow ThreeDLightShadow ThreeDShadow;
+        }
+
+        div#messages p {
+            margin: 0;
+        }
+
+        input#input {
+            width: 100%;
+            background: #ffffff;
+            line-height: 25px;
+            margin: 3px auto;
+            padding: 0 5px;
+            border-style: solid;
+            border-width: 2px;
+            border-color: ThreeDShadow ThreeDLightShadow ThreeDLightShadow ThreeDShadow;
+        }
+    </style>
+</head>
+<body>
+<div id="container"><div id="messages"></div></div>
+<input id="input">
+<script>
+    var ws = new WebSocket('ws://127.0.0.1:8080/ws');
+
+    ws.onopen = x => console.log('opened', x);
+
+    var messages = document.getElementById('messages');
+    ws.onmessage = m => {
+        var newMsg = document.createElement('span');
+        newMsg.innerHTML = m.data;
+        messages.appendChild(newMsg);
+
+        if (document.getElementById("container").scrollHeight > document.getElementById("container").clientHeight) {
+            document.getElementById("container").scrollTop = document.getElementById("container").scrollHeight - document.getElementById("container").clientHeight;
+        }
+    };
+
+    var input = document.getElementById('input');
+    input.onkeydown = e => {
+        if (e.keyCode == 13) {
+            ws.send(input.value);
+            input.value = '';
+        }
+    };
+</script>
+
+</body>
+</html>

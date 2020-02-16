@@ -1,8 +1,10 @@
 {
     "require": {
         "ext-mbstring": "*",
+        "ext-json": "*",
         "react/socket": "^1.3",
-        "react/http": "^0.8.5"
+        "react/http": "^0.8.5",
+        "voryx/websocketmiddleware": "^1.0"
     },
     "autoload": {
         "psr-4": {

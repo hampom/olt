@@ -33,6 +33,7 @@ class App
         'onPrivateTalk'   => 'pt',
         'onDate'          => 'date',
         'onProfile'       => 'pf',
+        'onSetProfile'    => 'spf',
         'onUserListAll'   => 'ua',
         'onUserList'      => 'u',
         'onSendMessage'   => 'ca',
@@ -40,7 +41,15 @@ class App
         'onClose'         => 'e',
     ];
 
+    /**
+     * @var string プロフィール
+     */
     protected $profile = "";
+
+    /**
+     * @var string プロフィール(テンポラリ用)
+     */
+    protected $_profile = "";
 
     /**
      * @param $id
@@ -504,7 +513,7 @@ class App
     protected function onProfile($args = null): void
     {
         if (empty($args)) {
-            $this->writeln("指定のユーザーはいません", 2);
+            $this->writeln("指定のユーザーはいません", 2, 1);
             return;
         }
 
@@ -519,11 +528,45 @@ class App
             }
         }
         if (empty($user) || !is_object($user)) {
-            $this->writeln("指定のユーザーはいません", 2);
+            $this->writeln("指定のユーザーはいません", 2, 1);
             return;
         }
 
-        $this->writeln($user->getProfile(), 2);
+        $profile = $this->getProfile();
+        if ($profile) {
+            $this->writeln($user->getProfile(), 2, 1);
+        } else {
+            $this->systemMsg("プロフィールが設定されていません");
+        }
+    }
+
+    /**
+     * プロフィールの設定
+     *   設定中のプロフィールが見えてしまわないように、テンポラリ変数に入れて、
+     *   最後にプロフィールを上書きする。
+     *
+     * @param null $message
+     */
+    protected function onSetProfile($message = null): void
+    {
+        if (__METHOD__ == $this->getStatus()) {
+            if (trim($message) === '.') {
+                $this->clearStatus();
+                $this->writeln("プロフィールの設定を完了しました", 2, 1);
+
+                $this->profile = $this->_profile;
+                $this->_profile = "";
+                return;
+            }
+
+            $this->_profile .= $message . "\r\n";
+            return;
+        }
+
+        $this->_profile = "";
+        $this->writeln("プロフィールを入力してください");
+        $this->writeln("入力が終わったら「.(ピリオド)」を入力しエンターキーを押してください");
+        $this->prompt("", __METHOD__);
     }
 
     protected function onClose(): void
@@ -536,9 +579,12 @@ class App
         throw new \LogicException();
     }
 
-    public function writeln(string $message = null, int $newlines = 1): void
+    public function writeln(string $message = null, int $newlines = 1, int $beforelines = 0): void
     {
-        $this->write($message . str_repeat("\r\n", $newlines));
+        $this->write(
+            str_repeat("\r\n", $beforelines) .
+            $message .
+            str_repeat("\r\n", $newlines));
     }
 
     protected function prompt($message, $status): void

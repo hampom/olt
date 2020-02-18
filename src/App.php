@@ -133,13 +133,15 @@ class App
         if (!empty($command)) {
             $this->clearStatus();
 
+            // 小文字に統一する
+            $command = strtolower($command);
             switch (true) {
                 case (preg_match("|^[0-9]+$|", $command)) :
                     if ($this->onChat($command)) {
                         return;
                     }
                     break;
-                case ($command == 'e') :
+                case ($command == 'q') :
                     $this->onClose();
                     break;
                 case ($command == 'ua') :
@@ -151,7 +153,7 @@ class App
         }
 
         $this->writeln();
-        $this->prompt("チャンネル番号またはコマンドを入力してください(1-60,E,UA): ", __METHOD__);
+        $this->prompt("チャンネル番号またはコマンドを入力してください(1-60,Q,UA): ", __METHOD__);
     }
 
     protected function dispatcher(array $command): void

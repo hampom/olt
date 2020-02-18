@@ -32,12 +32,15 @@ class App
         'onScrunble'      => 'sc',
         'onPrivateTalk'   => 'pt',
         'onDate'          => 'date',
+        'onProfile'       => 'pf',
         'onUserListAll'   => 'ua',
         'onUserList'      => 'u',
         'onSendMessage'   => 'ca',
         'onRefuseMessage' => 'rca',
         'onClose'         => 'e',
     ];
+
+    protected $profile = "";
 
     /**
      * @param $id
@@ -496,6 +499,31 @@ class App
         $this->prompt(">", $status);
     }
 
+    protected function onProfile($args = null): void
+    {
+        if (empty($args)) {
+            $this->writeln("指定のユーザーはいません", 2);
+            return;
+        }
+
+        $user = null;
+        foreach (Channel::getInstance()->getUserList() as $members) {
+            /** @var App $member */
+            foreach ($members as $member) {
+                if ($args == $member->getId()) {
+                    $user = $member;
+                    break 2;
+                }
+            }
+        }
+        if (empty($user) || !is_object($user)) {
+            $this->writeln("指定のユーザーはいません", 2);
+            return;
+        }
+
+        $this->writeln($user->getProfile(), 2);
+    }
+
     protected function onClose(): void
     {
         $this->conn->close();
@@ -623,5 +651,10 @@ EOD
             $this->getId(),
             $nickName
         );
+    }
+
+    private function getProfile(): string
+    {
+        return $this->profile;
     }
 }

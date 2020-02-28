@@ -8,7 +8,7 @@ use Ratchet\RFC6455\Messaging\Message;
 use React\Socket\ConnectionInterface;
 use Voryx\WebSocketMiddleware\WebSocketConnection;
 
-class App
+abstract class App
 {
     /** @var WebSocketConnection|ConnectionInterface */
     protected $conn;
@@ -574,17 +574,15 @@ class App
         $this->conn->close();
     }
 
-    public function write($message): void
-    {
-        throw new \LogicException();
-    }
+    abstract public function write(?string ...$message): void;
 
     public function writeln(string $message = null, int $newlines = 1, int $beforelines = 0): void
     {
         $this->write(
-            str_repeat("\r\n", $beforelines) .
-            $message .
-            str_repeat("\r\n", $newlines));
+            str_repeat("\r\n", $beforelines),
+            $message,
+            str_repeat("\r\n", $newlines)
+        );
     }
 
     protected function prompt($message, $status): void

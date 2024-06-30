@@ -17,7 +17,7 @@ final class Menu implements CommandInterface
      */
     public function __invoke(): ?CommandInterface
     {
-        $this->conn->writeln();
+        $this->conn->writeln("");
         $this->conn->write("チャンネル番号またはコマンドを入力してください(1-60,Q,UA): ");
 
         return $this;

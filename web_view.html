@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>OLT</title>
-    <link rel="stylesheet" href="https://cdn.rawgit.com/filipelinhares/ress/master/dist/ress.min.css" type="text/css" />
-    <style type="text/css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.rawgit.com/filipelinhares/ress/master/dist/ress.min.css"/>
+    <style>
         html, body {
             height: 100%;
             overflow: hidden;
         }
+
         body {
             background-color: Window;
-            color:#fffffc;
+            color: #fffffc;
             padding: 3px;
         }
+
         div#container {
             background: #000b00;
             white-space: pre;
@@ -47,13 +49,13 @@
 <div id="container"><div id="messages"></div></div>
 <input id="input">
 <script>
-    var ws = new WebSocket('ws://127.0.0.1:8080/ws');
+    const ws = new WebSocket('ws://127.0.0.1:8080/ws');
 
     ws.onopen = x => console.log('opened', x);
 
     var messages = document.getElementById('messages');
     ws.onmessage = m => {
-        var newMsg = document.createElement('span');
+        const newMsg = document.createElement('span');
         newMsg.innerHTML = m.data;
         messages.appendChild(newMsg);
 
@@ -62,7 +64,7 @@
         }
     };
 
-    var input = document.getElementById('input');
+    const input = document.getElementById('input');
     input.onkeydown = e => {
         if (e.keyCode == 13) {
             ws.send(input.value);
@@ -70,6 +72,5 @@
         }
     };
 </script>
-
 </body>
 </html>

@@ -9,7 +9,6 @@ use Olt\Service\Channel;
 use Olt\Service\Command\CommandInterface;
 use Olt\Service\Command\Opening\WelcomeWorld;
 use Olt\Util\Str;
-use React\Socket\ConnectionInterface;
 
 abstract class Connection
 {
@@ -48,13 +47,13 @@ abstract class Connection
 
     public function __construct(
         public User $user,
-        public ConnectionInterface $conn,
+        public mixed $conn,
     ) {
     }
 
     public function connect(): void
     {
-        $this->conn->on('data', function (string $message) {
+        $this->conn->on($this->getMessageType(), function (mixed $message) {
             if ($this->getMessage($message) === false) {
                 return;
             }
@@ -127,8 +126,10 @@ abstract class Connection
         return $className;
     }
 
-    private function getMessage(string &$message): bool
+    protected function getMessage(mixed &$message): bool
     {
+        $message = $this->getMessageFromSource($message);
+
         // 0xFFで始まるものはスルーする
         if (str_starts_with($message, (string) 0xFF)) {
             return false;
@@ -155,9 +156,11 @@ abstract class Connection
 
     abstract protected function getMessageType(): string;
 
+    abstract protected function getMessageFromSource(mixed $message): string;
+
     abstract public function write(?string ...$message): void;
 
-    public function writeln(string $message = null, int $newLines = 1, int $beforeLines = 0): void
+    public function writeln(string $message = "", int $newLines = 1, int $beforeLines = 0): void
     {
         $this->write(
             str_repeat("\r\n", $beforeLines),

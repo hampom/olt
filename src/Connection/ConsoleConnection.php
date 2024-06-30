@@ -1,19 +1,26 @@
-<?php declare(strict_types=1);
+<?php
 
-namespace olt;
+declare(strict_types=1);
 
-class ConsoleApp extends App
+namespace Olt\Connection;
+
+class ConsoleConnection extends Connection
 {
     public function write(?string ...$message): void
     {
         if (!empty($this->encode)) {
             $message = mb_convert_variables(
-                $message,
+                "UTF-8",
                 $this->encode,
-                "UTF-8"
+                $message
             );
         }
 
         $this->conn->write(implode("", $message));
+    }
+
+    protected function getMessageType(): string
+    {
+        return 'data';
     }
 }

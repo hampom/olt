@@ -24,7 +24,7 @@ trait OutPutUserList
                 $chString = match (true) {
                     !empty($other->user->scramble) => 'S' . $other->user->scramble,
                     !empty($other->user->private) => 'PT',
-                    default => $other->user->channel,
+                    default => sprintf('%2s', $other->user->channel),
                 };
 
                 // 名前の後ろに空白を埋める(sprintf()がマルチバイト非対応の為
@@ -37,15 +37,15 @@ trait OutPutUserList
                     )
                 );
 
-                if (++$i / 2) {
-                    $outCmd = "writeln";
-                } else {
+                if (++$i % 2) {
                     $outCmd = "write";
                     // indent space
                     $list .= '  ';
+                } else {
+                    $outCmd = "writeln";
                 }
 
-                $conn->{$outCmd}($list);
+                $conn->$outCmd($list);
             }
 
             if (count($channel) % 2) {

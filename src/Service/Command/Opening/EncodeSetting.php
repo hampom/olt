@@ -6,7 +6,6 @@ namespace Olt\Service\Command\Opening;
 
 use Olt\Connection\Connection;
 use Olt\Service\Command\CommandInterface;
-use Olt\Service\Command\NickName;
 
 final class EncodeSetting implements CommandInterface
 {
@@ -33,8 +32,7 @@ final class EncodeSetting implements CommandInterface
         };
 
         if ($this->conn->encode !== false && empty($this->nickName)) {
-            $this->conn->subTitle();
-            return (new NickName($this->conn, null))();
+            return (new Banner($this->conn, null))();
         }
 
         return $this;

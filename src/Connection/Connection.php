@@ -180,15 +180,4 @@ abstract class Connection
 
         $this->writeln("-------- " . $message);
     }
-
-    public function subTitle(): void
-    {
-        $this->writeln(<<<EOD
-
-    ★☆★ようこそＯＬＴへ★☆★
-
-
-EOD
-        );
-    }
 }
